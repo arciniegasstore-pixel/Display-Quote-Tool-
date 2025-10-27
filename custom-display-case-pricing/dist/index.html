@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Custom display case pricing </title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acrylic Display Case Cost Calculator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind for Inter font and custom colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#4f46e5', // Indigo-600 (Used for core costs)
+                        'secondary': '#facc15', // Amber-400 (Used for Engraved)
+                        'production-expense': '#ef4444', // Red-500
+                        'profit-high': '#10b981', // Emerald-500 (Used for high profit margins)
+                        'profit-low': '#2563eb', // Blue-600 (Used for lower profit margins/Clear)
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for better readability and a clean look */
+        .input-label {
+            @apply block text-sm font-medium text-gray-700 mb-1;
+        }
+        .input-field {
+            @apply w-full p-3 border border-gray-300 rounded-xl shadow-inner focus:ring-primary focus:border-primary transition duration-150 text-lg font-medium;
+        }
+        /* Mobile-friendly table styling */
+        @media (max-width: 768px) {
+            .responsive-table tr {
+                display: flex;
+                flex-direction: column;
+                border-bottom: 2px solid #e5e7eb;
+                margin-bottom: 1rem;
+                padding-bottom: 1rem;
+            }
+            .responsive-table td {
+                display: flex;
+                justify-content: space-between;
+                padding: 0.5rem 0;
+            }
+            .responsive-table td:before {
+                content: attr(data-label);
+                font-weight: 600;
+                margin-right: 1rem;
+                color: #4b5563; /* Gray-600 */
+            }
+            .responsive-table thead {
+                display: none; /* Hide header on mobile */
+            }
+        }
+    </style>
+    <!-- PWA configuration for app-like behavior -->
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Acrylic Calc">
+</head>
+
+<body class="font-sans bg-gray-900 min-h-screen p-4 sm:p-8">
+
+    <div id="app" class="max-w-5xl mx-auto">
+
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-white">Custom Display Case Pricing</h1>
+            <p class="mt-2 text-lg text-indigo-300">Live Cost and Margin Calculator (5 mm Acrylic)</p>
+        </header>
+
+        <!-- Main Card Container -->
+        <div class="bg-white shadow-2xl rounded-3xl p-6 sm:p-10">
+
+            <!-- Inputs and Core Cost Summary -->
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8 border-b pb-6 border-gray-200">
+
+                <!-- 1. Dimensions Input -->
+                <div class="lg:col-span-3 bg-indigo-50 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 border-indigo-200">1. Case Dimensions (Inches)</h2>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label for="lengthIn" class="input-label">Length (in)</label>
+                            <input type="number" id="lengthIn" value="8" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                        </div>
+                        <div>
+                            <label for="widthIn" class="input-label">Width (in)</label>
+                            <input type="number" id="widthIn" value="4" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                        </div>
+                        <div>
+                            <label for="heightIn" class="input-label">Height (in)</label>
+                            <input type="number" id="heightIn" value="3" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-600">
+                        <span id="dimsMmOutput"></span>
+                    </div>
+                </div>
+
+                <!-- 2. Core Cost Summary -->
+                <div class="lg:col-span-2 space-y-4">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">2. Core Production Expenses</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-red-50 p-3 rounded-lg shadow-md text-center">
+                            <p class="text-xs font-medium text-red-700">Material Expense</p>
+                            <p id="materialCostOutput" class="text-xl font-extrabold text-red-600 mt-1">-</p>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-lg shadow-md text-center">
+                            <p class="text-xs font-medium text-red-700">Magnet Expense (#<span id="magnetCountOutput">0</span>)</p>
+                            <p id="magnetCostOutput" class="text-xl font-extrabold text-red-600 mt-1">-</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-primary text-white p-4 rounded-lg shadow-xl text-center">
+                        <p class="text-sm font-medium">TOTAL PRODUCTION COST</p>
+                        <p id="totalBaseCostOutput" class="text-3xl font-extrabold mt-1">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Table -->
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Variant Pricing & Profit Analysis</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 responsive-table">
+                    <thead>
+                        <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                            <th class="px-3 py-3 w-1/6">Variant</th>
+                            <th class="px-3 py-3 w-1/6">Relative Multiplier</th>
+                            <th class="px-3 py-3 w-1/6">Production Cost</th>
+                            <th class="px-3 py-3 w-1/6">Selling Price</th>
+                            <th class="px-3 py-3 w-1/6">Profit</th>
+                            <th class="px-3 py-3 w-1/6">Margin %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pricingTableBody" class="bg-white divide-y divide-gray-100">
+                        <!-- Rows populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Engraved Pricing Note -->
+            <div class="mt-6 p-4 bg-secondary border-l-4 border-amber-500 text-gray-900 rounded-lg shadow-inner">
+                <p class="font-semibold">Engraved Price Baseline Note:</p>
+                <p class="text-sm">The Engraved Selling Price is calculated by multiplying the **Total Production Cost** by a fixed **5.51x** Pricing Factor, establishing the dynamic baseline for all other variants.</p>
+                <div class="mt-2 flex items-center">
+                    <p class="text-lg font-bold">Current Engraved Price: </p>
+                    <span id="engravedPriceOutput" class="ml-2 text-2xl font-extrabold text-amber-700">$35.00</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        // --- CONSTANTS ---
+        const CONVERSION_FACTOR = 25.4; // Inches to mm
+        const SHEET_COST = 140.0; // $140 per sheet
+        const SHEET_AREA_MM2 = 2973122; // 1219mm * 2438mm
+        const WASTE_FACTOR = 1.15; // 15% waste
+
+        const MAGNET_COST_UNIT = 0.20; // $0.20 each
+        
+        // This is the multiplier used to jump from Total Production Cost ($6.35) to Engraved Price ($35.00)
+        const PRODUCTION_COST_TO_ENGRAVED_FACTOR = 5.51181102; 
+
+        // These multipliers are relative to the CALCULATED ENGRAVED PRICE (as per your original logic)
+        const VARIANT_RELATIVE_MULTIPLIERS = {
+            'Engraved': 1.00, // Baseline for all other variants
+            'Clear': 0.58,
+            'Black': 1.14,
+            'Color': 1.57,
+            'Glow': 1.43,
+        };
+
+        // --- UTILITY FUNCTIONS ---
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(value);
+        };
+
+        const formatPercentage = (value) => {
+            return (value * 100).toFixed(1) + '%';
+        };
+
+        // --- CORE CALCULATIONS ---
+
+        /**
+         * Determines the number of magnets based on the case height in mm.
+         * @param {number} H_mm - Height in millimeters.
+         * @returns {number} - Number of magnets required.
+         */
+        const getMagnetCount = (H_mm) => {
+            if (H_mm < 180) {
+                return 8;
+            } else if (H_mm <= 300) {
+                return 12;
+            } else { // H_mm > 300
+                return 16;
+            }
+        };
+
+        /**
+         * Main function to perform all cost and pricing calculations.
+         */
+        window.calculatePricing = () => {
+            // 1. Get Inputs (Inches)
+            const L_in = parseFloat(document.getElementById('lengthIn').value) || 0;
+            const W_in = parseFloat(document.getElementById('widthIn').value) || 0;
+            const H_in = parseFloat(document.getElementById('heightIn').value) || 0;
+            
+            // Validation for dimensions
+            if (L_in <= 0 || W_in <= 0 || H_in <= 0) {
+                // Reset outputs if inputs are invalid or zero
+                document.getElementById('dimsMmOutput').textContent = '';
+                document.getElementById('materialCostOutput').textContent = '-';
+                document.getElementById('magnetCostOutput').textContent = '-';
+                document.getElementById('magnetCountOutput').textContent = '0';
+                document.getElementById('totalBaseCostOutput').textContent = '-';
+                document.getElementById('engravedPriceOutput').textContent = formatCurrency(0);
+                document.getElementById('pricingTableBody').innerHTML = '';
+                return;
+            }
+
+            // 2. Convert to Millimeters (mm)
+            const L_mm = L_in * CONVERSION_FACTOR;
+            const W_mm = W_in * CONVERSION_FACTOR;
+            const H_mm = H_in * CONVERSION_FACTOR;
+
+            // Update Dimensions MM output
+            document.getElementById('dimsMmOutput').textContent =
+                `Converted Dimensions (mm): ${L_mm.toFixed(1)} × ${W_mm.toFixed(1)} × ${H_mm.toFixed(1)} mm`;
+            
+            // 3. Calculate Surface Area (mm²)
+            const surfaceArea_noWaste = 2 * ((L_mm * W_mm) + (L_mm * H_mm) + (W_mm * H_mm));
+
+            // 4. Material Cost (with 15% waste)
+            const materialCost = ((surfaceArea_noWaste * WASTE_FACTOR) / SHEET_AREA_MM2) * SHEET_COST;
+            document.getElementById('materialCostOutput').textContent = formatCurrency(materialCost);
+
+            // 5. Magnet Cost
+            const magnetCount = getMagnetCount(H_mm);
+            const magnetCost = magnetCount * MAGNET_COST_UNIT;
+
+            document.getElementById('magnetCostOutput').textContent = formatCurrency(magnetCost);
+            document.getElementById('magnetCountOutput').textContent = magnetCount;
+
+            // 6. Total Production Cost (The expense used to drive pricing)
+            const totalProductionCost = materialCost + magnetCost;
+            document.getElementById('totalBaseCostOutput').textContent = formatCurrency(totalProductionCost);
+
+            // 7. Calculate Engraved Selling Price (The dynamic baseline)
+            const engravedPrice = totalProductionCost * PRODUCTION_COST_TO_ENGRAVED_FACTOR;
+            document.getElementById('engravedPriceOutput').textContent = formatCurrency(engravedPrice);
+
+            // 8. Calculate ALL Variant Pricing, Profit, and Margin
+            let tableHTML = '';
+            const variants = Object.keys(VARIANT_RELATIVE_MULTIPLIERS);
+
+            variants.forEach(variant => {
+                // Use the relative multiplier based on the Engraved Selling Price
+                const relativeMultiplier = VARIANT_RELATIVE_MULTIPLIERS[variant];
+                
+                // Selling Price = Engraved Price * Relative Multiplier
+                const sellingPrice = engravedPrice * relativeMultiplier; 
+                
+                // Profit is calculated against the Production Cost
+                const profit = sellingPrice - totalProductionCost;
+                const margin = sellingPrice > 0 ? profit / sellingPrice : 0;
+
+                // Determine row colors for visual clarity
+                let rowClasses = 'whitespace-nowrap';
+                let priceColor = 'text-gray-900';
+                let profitColor = 'text-profit-high font-semibold';
+                let backgroundColor = 'bg-white';
+
+                if (variant === 'Engraved') {
+                    backgroundColor = 'bg-secondary/20 font-bold';
+                    priceColor = 'text-amber-700';
+                } else if (variant === 'Black' || variant === 'Color' || variant === 'Glow') {
+                    // High profit margin variants
+                    backgroundColor = 'bg-green-50/70';
+                    profitColor = 'text-profit-high font-extrabold';
+                } else if (variant === 'Clear') {
+                    // Lower profit margin variant
+                    backgroundColor = 'bg-blue-50/70';
+                    profitColor = 'text-profit-low font-bold';
+                }
+
+                tableHTML += `
+                    <tr class="${rowClasses} ${backgroundColor}">
+                        <td class="px-3 py-4" data-label="Variant">${variant}</td>
+                        <td class="px-3 py-4 text-center font-medium" data-label="Relative Multiplier">${relativeMultiplier.toFixed(2)}x</td>
+                        <!-- Production Cost column -->
+                        <td class="px-3 py-4 text-production-expense font-bold" data-label="Production Cost">${formatCurrency(totalProductionCost)}</td>
+                        <td class="px-3 py-4 ${priceColor} font-extrabold" data-label="Selling Price">${formatCurrency(sellingPrice)}</td>
+                        <td class="px-3 py-4 ${profitColor}" data-label="Profit">${formatCurrency(profit)}</td>
+                        <td class="px-3 py-4 ${profitColor}" data-label="Margin %">${formatPercentage(margin)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('pricingTableBody').innerHTML = tableHTML;
+        };
+
+        // Run calculation once on load to populate with default values
+        document.addEventListener('DOMContentLoaded', calculatePricing);
+    </script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
