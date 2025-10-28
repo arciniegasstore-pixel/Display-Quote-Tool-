@@ -3,7 +3,7 @@
 
   <head>
     <meta charset="UTF-8">
-    <title>Custom display case pricing </title>
+    <title>Untitled</title>
     
 
   </head>
@@ -41,8 +41,14 @@
         .input-label {
             @apply block text-sm font-medium text-gray-700 mb-1;
         }
+        .input-group {
+            @apply flex items-center;
+        }
         .input-field {
-            @apply w-full p-3 border border-gray-300 rounded-xl shadow-inner focus:ring-primary focus:border-primary transition duration-150 text-lg font-medium;
+            @apply w-full p-3 border border-gray-300 rounded-l-xl shadow-inner focus:ring-primary focus:border-primary transition duration-150 text-lg font-medium;
+        }
+        .unit-select {
+            @apply p-3 border border-gray-300 border-l-0 rounded-r-xl shadow-inner bg-gray-100 focus:ring-primary focus:border-primary transition duration-150 text-sm font-medium;
         }
         /* Mobile-friendly table styling */
         @media (max-width: 768px) {
@@ -94,20 +100,48 @@
 
                 <!-- 1. Dimensions Input -->
                 <div class="lg:col-span-3 bg-indigo-50 p-6 rounded-2xl shadow-lg">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 border-indigo-200">1. Case Dimensions (Inches)</h2>
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 border-indigo-200">1. Case Dimensions (Variable Units)</h2>
                     <div class="grid grid-cols-3 gap-4">
+                        
+                        <!-- Length Input -->
                         <div>
-                            <label for="lengthIn" class="input-label">Length (in)</label>
-                            <input type="number" id="lengthIn" value="8" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                            <label for="length" class="input-label">Length</label>
+                            <div class="input-group">
+                                <input type="number" id="length" value="8" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                                <select id="lengthUnit" class="unit-select" onchange="calculatePricing()">
+                                    <option value="in">in</option>
+                                    <option value="cm">cm</option>
+                                    <option value="mm">mm</option>
+                                </select>
+                            </div>
                         </div>
+                        
+                        <!-- Width Input -->
                         <div>
-                            <label for="widthIn" class="input-label">Width (in)</label>
-                            <input type="number" id="widthIn" value="4" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                            <label for="width" class="input-label">Width</label>
+                            <div class="input-group">
+                                <input type="number" id="width" value="4" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                                <select id="widthUnit" class="unit-select" onchange="calculatePricing()">
+                                    <option value="in">in</option>
+                                    <option value="cm">cm</option>
+                                    <option value="mm">mm</option>
+                                </select>
+                            </div>
                         </div>
+                        
+                        <!-- Height Input -->
                         <div>
-                            <label for="heightIn" class="input-label">Height (in)</label>
-                            <input type="number" id="heightIn" value="3" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                            <label for="height" class="input-label">Height</label>
+                            <div class="input-group">
+                                <input type="number" id="height" value="3" min="0.1" step="0.1" class="input-field" oninput="calculatePricing()">
+                                <select id="heightUnit" class="unit-select" onchange="calculatePricing()">
+                                    <option value="in">in</option>
+                                    <option value="cm">cm</option>
+                                    <option value="mm">mm</option>
+                                </select>
+                            </div>
                         </div>
+
                     </div>
                     <div class="mt-4 text-sm text-gray-600">
                         <span id="dimsMmOutput"></span>
@@ -170,17 +204,19 @@
 
     <script type="module">
         // --- CONSTANTS ---
-        const CONVERSION_FACTOR = 25.4; // Inches to mm
+        const CONVERSION_FACTOR_IN_TO_MM = 25.4; 
+        const CONVERSION_FACTOR_CM_TO_MM = 10; 
+
         const SHEET_COST = 140.0; // $140 per sheet
         const SHEET_AREA_MM2 = 2973122; // 1219mm * 2438mm
         const WASTE_FACTOR = 1.15; // 15% waste
 
         const MAGNET_COST_UNIT = 0.20; // $0.20 each
         
-        // This is the multiplier used to jump from Total Production Cost ($6.35) to Engraved Price ($35.00)
+        // Multiplier used to jump from Total Production Cost ($6.35) to Engraved Price ($35.00)
         const PRODUCTION_COST_TO_ENGRAVED_FACTOR = 5.51181102; 
 
-        // These multipliers are relative to the CALCULATED ENGRAVED PRICE (as per your original logic)
+        // Multipliers are relative to the CALCULATED ENGRAVED PRICE
         const VARIANT_RELATIVE_MULTIPLIERS = {
             'Engraved': 1.00, // Baseline for all other variants
             'Clear': 0.58,
@@ -190,6 +226,25 @@
         };
 
         // --- UTILITY FUNCTIONS ---
+        
+        /**
+         * Converts an input value from its chosen unit (in, cm, mm) to millimeters.
+         * @param {number} value - The numerical input value.
+         * @param {string} unit - The unit string ('in', 'cm', 'mm').
+         * @returns {number} The converted value in millimeters (mm).
+         */
+        const convertToMM = (value, unit) => {
+            switch (unit) {
+                case 'in':
+                    return value * CONVERSION_FACTOR_IN_TO_MM;
+                case 'cm':
+                    return value * CONVERSION_FACTOR_CM_TO_MM;
+                case 'mm':
+                default:
+                    return value;
+            }
+        };
+
         const formatCurrency = (value) => {
             return new Intl.NumberFormat('en-US', {
                 style: 'currency',
@@ -224,13 +279,22 @@
          * Main function to perform all cost and pricing calculations.
          */
         window.calculatePricing = () => {
-            // 1. Get Inputs (Inches)
-            const L_in = parseFloat(document.getElementById('lengthIn').value) || 0;
-            const W_in = parseFloat(document.getElementById('widthIn').value) || 0;
-            const H_in = parseFloat(document.getElementById('heightIn').value) || 0;
+            // 1. Get Inputs and Units
+            const L_val = parseFloat(document.getElementById('length').value) || 0;
+            const W_val = parseFloat(document.getElementById('width').value) || 0;
+            const H_val = parseFloat(document.getElementById('height').value) || 0;
+            
+            const L_unit = document.getElementById('lengthUnit').value;
+            const W_unit = document.getElementById('widthUnit').value;
+            const H_unit = document.getElementById('heightUnit').value;
+            
+            // 2. Convert all dimensions to Millimeters (mm)
+            const L_mm = convertToMM(L_val, L_unit);
+            const W_mm = convertToMM(W_val, W_unit);
+            const H_mm = convertToMM(H_val, H_unit);
             
             // Validation for dimensions
-            if (L_in <= 0 || W_in <= 0 || H_in <= 0) {
+            if (L_mm <= 0 || W_mm <= 0 || H_mm <= 0) {
                 // Reset outputs if inputs are invalid or zero
                 document.getElementById('dimsMmOutput').textContent = '';
                 document.getElementById('materialCostOutput').textContent = '-';
@@ -242,14 +306,9 @@
                 return;
             }
 
-            // 2. Convert to Millimeters (mm)
-            const L_mm = L_in * CONVERSION_FACTOR;
-            const W_mm = W_in * CONVERSION_FACTOR;
-            const H_mm = H_in * CONVERSION_FACTOR;
-
             // Update Dimensions MM output
             document.getElementById('dimsMmOutput').textContent =
-                `Converted Dimensions (mm): ${L_mm.toFixed(1)} × ${W_mm.toFixed(1)} × ${H_mm.toFixed(1)} mm`;
+                `Converted Dimensions (mm): ${L_mm.toFixed(1)} × ${W_mm.toFixed(1)} × ${H_mm.toFixed(1)} mm (Used for Area Calc)`;
             
             // 3. Calculate Surface Area (mm²)
             const surfaceArea_noWaste = 2 * ((L_mm * W_mm) + (L_mm * H_mm) + (W_mm * H_mm));
